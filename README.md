@@ -18,4 +18,4 @@ An ultra-modern, high-performance landing page designed for a wireless headphone
 ## 📦 How to Run Locally
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/Saddam550/3d-wireless-headphone-landing-page.git](https://github.com/YOUR_USERNAME/3d-wireless-headphone-landing-page.git)
+   git clone [https://github.com/Saddam550/3d-wireless-headphone-landing-page.git](https://github.com/Saddam550/3d-wireless-headphone-landing-page.git)
