@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Designhub - Wireless Headphone Future</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            crimson: '#4a0e17',
+                            darkCrimson: '#2c080e',
+                            deepMaroon: '#1a0408',
+                            accentRed: '#8b1528',
+                            gold: '#d4af37',
+                            sand: '#e5d3bf',
+                            lightBlue: '#8ab4f8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Three.js & GSAP Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #2c080e;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .font-display {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Fixed 3D Canvas Background */
+        #webgl-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none; /* Allows scrolling and clicking UI through canvas */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a0408;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8b1528;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d4af37;
+        }
+
+        /* Glassmorphism Card Style */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card-hover:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(212, 175, 55, 0.3);
+            transform: translateY(-4px);
+        }
+
+        /* Color Swatch Ring Effect */
+        .swatch-active {
+            ring-2: 2px;
+            ring-offset-2: 2px;
+            ring-color: #ffffff;
+            transform: scale(1.15);
+        }
+
+        /* ===== Smooth scrolling (Lenis + CSS fallback) ===== */
+        html { scroll-behavior: smooth; }
+        html.lenis, html.lenis body { height: auto; }
+        .lenis.lenis-smooth { scroll-behavior: auto !important; }
+        .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+        .lenis.lenis-stopped { overflow: clip; }
+        .lenis.lenis-smooth iframe { pointer-events: none; }
+        @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+        /* 3D canvas fades in once the first frame is ready */
+        #webgl-canvas { transition: opacity 1.2s ease; }
+
+        /* Header turns into soft glass after scrolling */
+        #main-header.header-scrolled {
+            background: rgba(26, 4, 8, 0.55);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 0.9rem;
+            padding-bottom: 0.9rem;
+        }
+
+        /* Product images (3D renders) inside the product cards */
+        .product-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.45));
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+            animation: thumbFloat 6s ease-in-out infinite;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .glass-card-hover:hover .product-thumb { transform: scale(1.08) translateY(-4px); }
+        @keyframes thumbFloat {
+            0%, 100% { translate: 0 0; }
+            50% { translate: 0 -6px; }
+        }
+        @media (prefers-reduced-motion: reduce) { .product-thumb { animation: none; } }
+    </style>
+</head>
+<body class="relative selection:bg-brand-gold selection:text-black">
+
+    <!-- 3D WebGL Canvas Layer -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- MAIN UI CONTENT LAYER -->
+    <div class="relative z-20">
+
+        <!-- Header / Navigation -->
+        <header class="fixed top-0 left-0 w-full z-50 px-6 sm:px-12 py-5 flex items-center justify-between transition-all duration-300" id="main-header">
+            <a href="#" class="flex items-center gap-2 text-2xl font-black font-display tracking-tight text-white group">
+                <div class="w-8 h-8 rounded-full bg-brand-gold flex items-center justify-center text-brand-darkCrimson transition-transform group-hover:rotate-12">
+                    <i class="fa-solid font-bold fa-headphones-simple text-sm"></i>
+                </div>
+                <span>Designhub</span>
+            </a>
+
+            <!-- Nav Links -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
+                <a href="#hero" class="hover:text-brand-gold transition-colors">Product</a>
+                <a href="#recommended" class="hover:text-brand-gold transition-colors">New Product</a>
+                <a href="#features" class="hover:text-brand-gold transition-colors">Features</a>
+                <a href="#reviews" class="hover:text-brand-gold transition-colors">Customer</a>
+            </nav>
+
+            <!-- Buy Now CTA Button -->
+            <button class="bg-white text-brand-darkCrimson hover:bg-brand-gold hover:text-black font-bold px-6 py-2.5 rounded-full text-sm transition-all shadow-lg hover:shadow-brand-gold/20 transform hover:-translate-y-0.5 active:translate-y-0">
+                Buy Now!
+            </button>
+        </header>
+
+        <!-- SECTION 1: HERO -->
+        <section id="hero" class="min-h-screen relative flex flex-col justify-between pt-32 pb-12 px-6 sm:px-12 max-w-7xl mx-auto">
+            
+            <!-- Left Side Numbers & Main Title -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Side indicators (01 - 05) -->
+                <div class="hidden lg:flex flex-col gap-3 text-xs font-mono text-gray-400 col-span-1 pt-4">
+                    <span class="text-white font-bold border-l-2 border-brand-gold pl-2">01</span>
+                    <span class="pl-2.5 opacity-60 hover:opacity-100 cursor-pointer transition-opacity">02</span>
+                    <span class="pl-2.5 opacity-60 hover:opacity-100 cursor-pointer transition-opacity">03</span>
+                    <span class="pl-2.5 opacity-60 hover:opacity-100 cursor-pointer transition-opacity">04</span>
+                    <span class="pl-2.5 opacity-60 hover:opacity-100 cursor-pointer transition-opacity">05</span>
+                </div>
+
+                <!-- Main Hero Headline -->
+                <div class="lg:col-span-11 flex flex-col">
+                    <span class="uppercase tracking-widest text-xs font-bold text-brand-gold mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-gold inline-block animate-ping"></span>
+                        WIRELESS AUDIO COLLECTION
+                    </span>
+                    <h1 class="text-5xl sm:text-7xl xl:text-9xl font-black font-display tracking-tight text-white uppercase leading-none">
+                        HEADPHONE<br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500">FUTURE</span>
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Empty Space Reserved for 3D Headphone in Center Viewport -->
+            <div class="h-64 sm:h-96 pointer-events-none"></div>
+
+            <!-- Bottom Badges / Tech Specs Row -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-white/10 pt-8 mt-auto">
+                
+                <div class="flex items-center gap-4 group">
+                    <div class="w-12 h-12 rounded-2xl glass-card flex items-center justify-center text-brand-gold text-xl group-hover:bg-brand-gold group-hover:text-black transition-all">
+                        <i class="fa-solid fa-compact-disc"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">High-Resolution</h4>
+                        <p class="text-xs text-gray-400">Audio Compatible</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 group">
+                    <div class="w-12 h-12 rounded-2xl glass-card flex items-center justify-center text-brand-gold text-xl group-hover:bg-brand-gold group-hover:text-black transition-all">
+                        <i class="fa-solid fa-microchip"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">70mm HD Driver Units</h4>
+                        <p class="text-xs text-gray-400">With Aluminium-Coated</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 group">
+                    <div class="w-12 h-12 rounded-2xl glass-card flex items-center justify-center text-brand-gold text-xl group-hover:bg-brand-gold group-hover:text-black transition-all">
+                        <i class="fa-solid fa-plug"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">4.4mm Balanced Cables</h4>
+                        <p class="text-xs text-gray-400">And Silver Coated Wiring</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- SECTION 2: PRODUCTS RECOMMENDED FOR YOU -->
+        <section id="recommended" class="min-h-screen py-24 px-6 sm:px-12 max-w-7xl mx-auto flex flex-col justify-center">
+            
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-5xl font-black font-display text-white tracking-tight">
+                    Products Recommended For You
+                </h2>
+                <p class="text-gray-400 text-sm mt-3 max-w-xl mx-auto">
+                    Select your preferred color profile. Real-time 3D model synchronization adapts to your custom aesthetic.
+                </p>
+            </div>
+
+            <!-- Product Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Product 1: Rockerz 400 -->
+                <div class="glass-card glass-card-hover rounded-3xl p-6 flex flex-col justify-between relative group">
+                    <div class="absolute top-4 right-4 z-10">
+                        <button class="w-10 h-10 rounded-full bg-white/10 hover:bg-white hover:text-black flex items-center justify-center text-white transition-all">
+                            <i class="fa-solid fa-cart-shopping text-sm"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="h-48 flex items-center justify-center my-4">
+                        <!-- Space reserved for 3D or visual reference -->
+                        <div class="text-center opacity-30 group-hover:opacity-60 transition-opacity">
+                            <i class="fa-solid fa-headphones text-7xl text-gray-300"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-bold text-xl text-white">Rockerz 400</h3>
+                            <span class="font-display font-bold text-brand-gold text-lg">$ 999.00</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-4">Deep Bass Matte Edition</p>
+
+                        <!-- Color Pickers -->
+                        <div class="flex items-center gap-3 pt-2 border-t border-white/10">
+                            <span class="text-xs text-gray-400">Color:</span>
+                            <button onclick="changeHeadphoneColor(0x1a1a1a, 0x111111)" class="w-5 h-5 rounded-full bg-black border border-white/40 hover:scale-125 transition-transform" title="Obsidian Black"></button>
+                            <button onclick="changeHeadphoneColor(0x4a0e17, 0x8b1528)" class="w-5 h-5 rounded-full bg-red-900 border border-white/40 hover:scale-125 transition-transform" title="Crimson Red"></button>
+                            <button onclick="changeHeadphoneColor(0xd4af37, 0xe5d3bf)" class="w-5 h-5 rounded-full bg-yellow-600 border border-white/40 hover:scale-125 transition-transform" title="Champagne Gold"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 2: Rockerz 550 (Center focus) -->
+                <div class="glass-card glass-card-hover rounded-3xl p-6 flex flex-col justify-between relative group border-brand-gold/40 shadow-xl shadow-brand-crimson/30">
+                    <div class="absolute top-4 right-4 z-10">
+                        <button class="w-10 h-10 rounded-full bg-brand-gold text-black hover:bg-white flex items-center justify-center transition-all">
+                            <i class="fa-solid fa-cart-shopping text-sm"></i>
+                        </button>
+                    </div>
+
+                    <div class="h-48 flex items-center justify-center my-4">
+                        <div class="text-center opacity-40 group-hover:opacity-80 transition-opacity">
+                            <i class="fa-solid fa-headphones text-7xl text-brand-gold"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-bold text-xl text-white">Rockerz 550</h3>
+                            <span class="font-display font-bold text-brand-gold text-lg">$ 599.00</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-4">Ergonomic Sand Dune Edition</p>
+
+                        <!-- Color Pickers -->
+                        <div class="flex items-center gap-3 pt-2 border-t border-white/10">
+                            <span class="text-xs text-gray-400">Color:</span>
+                            <button onclick="changeHeadphoneColor(0xe5d3bf, 0xc5b39f)" class="w-5 h-5 rounded-full bg-amber-100 border border-white/40 hover:scale-125 transition-transform" title="Sand Beige"></button>
+                            <button onclick="changeHeadphoneColor(0x2c080e, 0x4a0e17)" class="w-5 h-5 rounded-full bg-red-950 border border-white/40 hover:scale-125 transition-transform" title="Dark Maroon"></button>
+                            <button onclick="changeHeadphoneColor(0x2b4c3f, 0x416959)" class="w-5 h-5 rounded-full bg-emerald-900 border border-white/40 hover:scale-125 transition-transform" title="Alpine Green"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 3: Rockerz 450 Pro -->
+                <div class="glass-card glass-card-hover rounded-3xl p-6 flex flex-col justify-between relative group">
+                    <div class="absolute top-4 right-4 z-10">
+                        <button class="w-10 h-10 rounded-full bg-white/10 hover:bg-white hover:text-black flex items-center justify-center text-white transition-all">
+                            <i class="fa-solid fa-cart-shopping text-sm"></i>
+                        </button>
+                    </div>
+
+                    <div class="h-48 flex items-center justify-center my-4">
+                        <div class="text-center opacity-30 group-hover:opacity-60 transition-opacity">
+                            <i class="fa-solid fa-headphones text-7xl text-blue-300"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-bold text-xl text-white">Rockerz 450 Pro</h3>
+                            <span class="font-display font-bold text-brand-gold text-lg">$ 899.00</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-4">Nordic Sky Blue Finish</p>
+
+                        <!-- Color Pickers -->
+                        <div class="flex items-center gap-3 pt-2 border-t border-white/10">
+                            <span class="text-xs text-gray-400">Color:</span>
+                            <button onclick="changeHeadphoneColor(0x60a5fa, 0x2563eb)" class="w-5 h-5 rounded-full bg-blue-400 border border-white/40 hover:scale-125 transition-transform" title="Sky Blue"></button>
+                            <button onclick="changeHeadphoneColor(0x9ca3af, 0x4b5563)" class="w-5 h-5 rounded-full bg-gray-400 border border-white/40 hover:scale-125 transition-transform" title="Silver Slate"></button>
+                            <button onclick="changeHeadphoneColor(0xec4899, 0xbe185d)" class="w-5 h-5 rounded-full bg-pink-500 border border-white/40 hover:scale-125 transition-transform" title="Neon Pink"></button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- SECTION 3: DETAILED FEATURES HIGHLIGHT -->
+        <section id="features" class="min-h-screen py-24 px-6 sm:px-12 max-w-7xl mx-auto flex flex-col justify-center">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                
+                <!-- Left Feature Column -->
+                <div class="space-y-8">
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-l-brand-gold">
+                        <h3 class="text-xl font-bold text-white mb-2">Wireless Entertainment</h3>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            Using ultra-low latency Bluetooth 5.3 technology, connect seamlessly to all your smart devices with lossless spatial audio streaming.
+                        </p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-l-brand-gold">
+                        <h3 class="text-xl font-bold text-white mb-2">40mm Dynamic Drivers</h3>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            Custom tuned 40mm neodymium dynamic drivers help pump out immersive studio-grade audio with punchy bass and crystalline highs.
+                        </p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-l-brand-gold">
+                        <h3 class="text-xl font-bold text-white mb-2">Ergonomically Designed</h3>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            Crafted with memory foam ear cushions and reinforced aluminum headbands to offer pressure-free comfort for all-day listening.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right Feature Column -->
+                <div class="space-y-8">
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-l-white">
+                        <h3 class="text-xl font-bold text-white mb-2">In-built Mic with Single Button</h3>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            HD omnidirectional microphone paired with AI noise cancellation ensures clear voice calls anywhere, anytime.
+                        </p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-l-white">
+                        <h3 class="text-xl font-bold text-white mb-2">Superior Playback Music</h3>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            The mighty 500mAh battery capacity offers a superior 40+ hours continuous playback on a single fast charge.
+                        </p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-l-white">
+                        <h3 class="text-xl font-bold text-white mb-2">Lightweight & Portable</h3>
+                        <p class="text-sm text-gray-300 leading-relaxed">
+                            Foldable ear-cup swivel design packs conveniently into any backpack or carry-on travel case.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- SECTION 4: PORTABLE SPOTLIGHT & REVIEWS -->
+        <section id="reviews" class="min-h-screen py-24 px-6 sm:px-12 max-w-7xl mx-auto flex flex-col justify-center space-y-20">
+            
+            <!-- Portable Spotlight Banner -->
+            <div class="glass-card rounded-3xl p-8 sm:p-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-gradient-to-r from-brand-darkCrimson to-brand-crimson">
+                <div class="space-y-4">
+                    <span class="text-xs uppercase font-bold tracking-widest text-brand-gold">Compact Perfection</span>
+                    <h2 class="text-4xl font-black font-display text-white">Lightweight and Portable</h2>
+                    <p class="text-gray-300 text-sm leading-relaxed">
+                        The powerful internal 500mAh battery provides up to 8 hours of audio bliss from a 10-minute quick charge. Designed to move seamlessly with your daily rhythm.
+                    </p>
+                    <button class="mt-4 bg-white text-brand-darkCrimson hover:bg-brand-gold font-bold px-8 py-3 rounded-full text-sm transition-all shadow-lg">
+                        Explore Specifications
+                    </button>
+                </div>
+                <div class="h-48 md:h-64 flex items-center justify-center">
+                    <!-- Headphone 3D shifts into focus here -->
+                </div>
+            </div>
+
+            <!-- Reviews Carousel / Cards -->
+            <div>
+                <h2 class="text-3xl font-black font-display text-white uppercase tracking-tight mb-8">
+                    PRODUCT REVIEWS
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Review Card 1 -->
+                    <div class="glass-card rounded-2xl p-6 relative">
+                        <div class="text-brand-gold flex gap-1 text-sm mb-3">
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <h4 class="font-bold text-white text-lg mb-2">"Best Product, Smooth Purchase"</h4>
+                        <p class="text-xs text-gray-300 leading-relaxed mb-6">
+                            "Simply the best and better than all the other headphones in the market. Highly recommend this product to every headphone lover. Purchase was easy and fast too."
+                        </p>
+                        <div class="flex items-center gap-3">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Reviewer" class="w-10 h-10 rounded-full object-cover border border-brand-gold" />
+                            <div>
+                                <h5 class="font-bold text-sm text-white">Wade Warren</h5>
+                                <p class="text-xs text-gray-400">Web Designer</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Review Card 2 -->
+                    <div class="glass-card rounded-2xl p-6 relative">
+                        <div class="text-brand-gold flex gap-1 text-sm mb-3">
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <h4 class="font-bold text-white text-lg mb-2">"Unbelievable Soundstage & Comfort"</h4>
+                        <p class="text-xs text-gray-300 leading-relaxed mb-6">
+                            "The bass response is deep without muddying the mids. Battery life actually matches the advertised specs, and the headband cushioning is top notch."
+                        </p>
+                        <div class="flex items-center gap-3">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" alt="Reviewer" class="w-10 h-10 rounded-full object-cover border border-brand-gold" />
+                            <div>
+                                <h5 class="font-bold text-sm text-white">Brooklyn Simmons</h5>
+                                <p class="text-xs text-gray-400">Audio Engineer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- FOOTER -->
+        <footer class="border-t border-white/10 bg-brand-deepMaroon py-12 px-6 sm:px-12 text-sm text-gray-400">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-brand-gold flex items-center justify-center text-brand-darkCrimson font-bold">
+                        <i class="fa-solid fa-headphones-simple text-xs"></i>
+                    </div>
+                    <span class="font-bold text-white font-display text-lg">Designhub</span>
+                </div>
+
+                <div class="flex items-center gap-6 text-gray-400">
+                    <a href="#" class="hover:text-brand-gold transition-colors"><i class="fa-brands fa-facebook-f text-base"></i></a>
+                    <a href="#" class="hover:text-brand-gold transition-colors"><i class="fa-brands fa-twitter text-base"></i></a>
+                    <a href="#" class="hover:text-brand-gold transition-colors"><i class="fa-brands fa-instagram text-base"></i></a>
+                    <a href="#" class="hover:text-brand-gold transition-colors"><i class="fa-brands fa-youtube text-base"></i></a>
+                </div>
+
+                <div class="text-xs text-gray-500">
+                    We're Always Happy To Help: <a href="mailto:support@designhub.com" class="text-gray-300 underline hover:text-brand-gold">ashuahmed0312@gmail.com</a>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- THREE.JS 3D SCENE & GSAP SCROLLTRIGGER ENGINE -->
+    <script>
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Convert a sRGB hex colour into the linear colour space three.js r128 expects
+        function hexToLinear(hex) {
+            const c = new THREE.Color(hex);
+            c.convertSRGBToLinear();
+            return c;
+        }
+
+        // 1. SCENE SETUP & RENDERER
+        const canvas = document.getElementById('webgl-canvas');
+        canvas.style.opacity = '0'; // fades in after the first frame (smooth intro)
+        const scene = new THREE.Scene();
+
+        // Add subtle fog matching background maroon color
+        scene.fog = new THREE.FogExp2(0x2c080e, 0.035);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        // Keeps the full headphone visible on phones / tall screens as well
+        function fitCameraToViewport() {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.aspect = aspect;
+            camera.position.set(0, 0, Math.max(9, 7.4 / aspect));
+            camera.updateProjectionMatrix();
+            scene.fog.density = 0.035 * 9 / camera.position.z;
+        }
+        fitCameraToViewport();
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
+
+        // 2. STUDIO ENVIRONMENT (gives the metal real reflections instead of looking flat black)
+        function createStudioEnvironment(rend) {
+            const envScene = new THREE.Scene();
+            envScene.add(new THREE.Mesh(
+                new THREE.SphereGeometry(30, 32, 16),
+                new THREE.MeshBasicMaterial({ color: 0x1b0509, side: THREE.BackSide })
+            ));
+            function softbox(w, h, color, intensity, x, y, z) {
+                const m = new THREE.Mesh(
+                    new THREE.PlaneGeometry(w, h),
+                    new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(intensity), side: THREE.DoubleSide })
+                );
+                m.position.set(x, y, z);
+                m.lookAt(0, 0, 0);
+                envScene.add(m);
+            }
+            softbox(14, 8, 0xffffff, 5.0, 6, 10, 8);       // key light
+            softbox(10, 10, 0xfff0d8, 2.2, -12, 3, 4);     // warm fill
+            softbox(8, 14, 0xd4af37, 3.0, -8, -2, -10);    // gold rim
+            softbox(12, 3, 0x8ab4f8, 2.4, 10, -4, -8);     // cool strip
+            softbox(20, 6, 0xffffff, 1.2, 0, -12, 6);      // floor bounce
+            const pmrem = new THREE.PMREMGenerator(rend);
+            const target = pmrem.fromScene(envScene, 0.02);
+            pmrem.dispose();
+            return target.texture;
+        }
+        scene.environment = createStudioEnvironment(renderer);
+
+        // 3. LIGHTING SETUP
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        mainLight.position.set(5, 8, 5);
+        scene.add(mainLight);
+
+        const goldRimLight = new THREE.PointLight(0xd4af37, 4, 15);
+        goldRimLight.position.set(-5, -2, -3);
+        scene.add(goldRimLight);
+
+        const fillLight = new THREE.DirectionalLight(0x8ab4f8, 0.8);
+        fillLight.position.set(-5, 3, 2);
+        scene.add(fillLight);
+
+        // 4. PROCEDURAL 3D HEADPHONE MODEL GENERATOR
+        // Custom Materials
+        const bodyMaterial = new THREE.MeshStandardMaterial({
+            color: hexToLinear(0x1a1a1a),
+            metalness: 0.8,
+            roughness: 0.25,
+            envMapIntensity: 1.0
+        });
+
+        const cushionMaterial = new THREE.MeshStandardMaterial({
+            color: hexToLinear(0x111111),
+            metalness: 0.05,
+            roughness: 0.75
+        });
+
+        const accentGoldMaterial = new THREE.MeshStandardMaterial({
+            color: hexToLinear(0xd4af37),
+            metalness: 0.95,
+            roughness: 0.15
+        });
+
+        const metallicRingMaterial = new THREE.MeshStandardMaterial({
+            color: hexToLinear(0xcccccc),
+            metalness: 0.95,
+            roughness: 0.18
+        });
+
+        const fabricMaterial = new THREE.MeshStandardMaterial({
+            color: hexToLinear(0x0a0a0a),
+            metalness: 0,
+            roughness: 0.95
+        });
+
+        const mainMats = {
+            body: bodyMaterial,
+            cushion: cushionMaterial,
+            gold: accentGoldMaterial,
+            metal: metallicRingMaterial,
+            fabric: fabricMaterial
+        };
+
+        // Model proportions
+        const BAND_R = 2.1;      // headband radius
+        const BAND_CY = 0.25;    // headband arc centre height
+        const CUP_X = 2.1;       // earcup distance from centre
+        const CUP_Y = -1.25;     // earcup centre height
+        const CUP_RADIUS = 1.12;
+
+        // Rounded earcup shell profile (lathe). Points run inner face -> side -> outer face
+        // so that the surface normals face outwards.
+        function createCupProfile() {
+            const pts = [];
+            pts.push(new THREE.Vector2(0, -0.24));
+            pts.push(new THREE.Vector2(0.7, -0.24));
+            const r = 0.14;
+            for (let i = 0; i <= 8; i++) {          // inner corner
+                const a = -Math.PI / 2 + (i / 8) * (Math.PI / 2);
+                pts.push(new THREE.Vector2(0.98 + r * Math.cos(a), -0.10 + r * Math.sin(a)));
+            }
+            pts.push(new THREE.Vector2(CUP_RADIUS, 0.16));
+            for (let i = 1; i <= 8; i++) {          // outer corner
+                const a = (i / 8) * (Math.PI / 2);
+                pts.push(new THREE.Vector2(0.98 + r * Math.cos(a), 0.16 + r * Math.sin(a)));
+            }
+            pts.push(new THREE.Vector2(0.5, 0.30));
+            pts.push(new THREE.Vector2(0, 0.30));
+            return pts;
+        }
+
+        // B. Earcup Assembly Function
+        function createEarcup(isLeft = true, mats = mainMats) {
+            const earcupGroup = new THREE.Group();
+            const sideMultiplier = isLeft ? -1 : 1;
+
+            // Everything that belongs to the cup itself is built around the local Y axis,
+            // where +Y = outwards (away from the head). The group is then turned sideways.
+            const cup = new THREE.Group();
+
+            // Outer Metallic Shell
+            const shell = new THREE.Mesh(new THREE.LatheGeometry(createCupProfile(), 96), mats.body);
+            cup.add(shell);
+
+            // Brushed metal brand plate + inset
+            const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.74, 0.05, 64), mats.metal);
+            plate.position.y = 0.31;
+            cup.add(plate);
+
+            const plateInset = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.02, 64), mats.body);
+            plateInset.position.y = 0.345;
+            cup.add(plateInset);
+
+            // Gold Accent Rings (plate edge + shell waist)
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.028, 16, 96), mats.gold);
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = 0.31;
+            cup.add(ring);
+
+            const waist = new THREE.Mesh(new THREE.TorusGeometry(CUP_RADIUS + 0.005, 0.022, 12, 128), mats.gold);
+            waist.rotation.x = Math.PI / 2;
+            waist.position.y = 0.03;
+            cup.add(waist);
+
+            // Ear Cushion Pad (inner side, facing the head)
+            const pad = new THREE.Mesh(new THREE.TorusGeometry(0.80, 0.29, 32, 96), mats.cushion);
+            pad.rotation.x = Math.PI / 2;
+            pad.scale.set(1, 1, 0.85);
+            pad.position.y = -0.41;
+            cup.add(pad);
+
+            // Speaker Driver fabric + ring (visible through the cushion)
+            const grill = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.04, 48), mats.fabric);
+            grill.position.y = -0.30;
+            cup.add(grill);
+
+            const grillRing = new THREE.Mesh(new THREE.TorusGeometry(0.53, 0.02, 12, 64), mats.metal);
+            grillRing.rotation.x = Math.PI / 2;
+            grillRing.position.y = -0.28;
+            cup.add(grillRing);
+
+            // local +Y -> outwards (left: -X, right: +X)
+            cup.rotation.z = -sideMultiplier * Math.PI / 2;
+            earcupGroup.add(cup);
+
+            // Slider rod + Metallic Yoke Connector that links the cup to the headband
+            const bandEndY = (BAND_CY + 0.05) - CUP_Y;       // headband end, relative to the cup
+            const rodBottom = CUP_RADIUS + 0.04;
+            const rodLength = bandEndY - rodBottom;
+            const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, rodLength, 24), mats.metal);
+            rod.position.set(0, rodBottom + rodLength / 2, 0);
+            earcupGroup.add(rod);
+
+            const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.34), mats.gold);
+            hinge.position.set(0, CUP_RADIUS + 0.02, 0);
+            earcupGroup.add(hinge);
+
+            // Positioning on headband
+            earcupGroup.position.set(sideMultiplier * CUP_X, CUP_Y, 0);
+
+            return earcupGroup;
+        }
+
+        // Whole headphone (headband + two earcups). Used by the main scene and the product renders.
+        function buildHeadphoneModel(mats) {
+            const group = new THREE.Group();
+            const bandGroup = new THREE.Group();
+
+            // A. Headband Arch (flat, symmetric half ring)
+            const band = new THREE.Mesh(new THREE.TorusGeometry(BAND_R, 0.13, 24, 128, Math.PI), mats.body);
+            band.scale.z = 1.7;
+            band.position.y = BAND_CY;
+            bandGroup.add(band);
+
+            [-1, 1].forEach(side => {   // rounded band ends
+                const cap = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 16), mats.body);
+                cap.scale.z = 1.7;
+                cap.position.set(side * BAND_R, BAND_CY, 0);
+                bandGroup.add(cap);
+            });
+
+            // Gold accent stripe on top of the band
+            const stripeArc = Math.PI * 0.5;
+            const stripe = new THREE.Mesh(new THREE.TorusGeometry(BAND_R + 0.125, 0.028, 12, 96, stripeArc), mats.gold);
+            stripe.rotation.z = Math.PI / 2 - stripeArc / 2;
+            stripe.position.y = BAND_CY;
+            bandGroup.add(stripe);
+
+            // Headband Cushion Padding (under the band, centred on top)
+            const padArc = Math.PI * 0.62;
+            const padR = BAND_R - 0.17;
+            const bandPad = new THREE.Mesh(new THREE.TorusGeometry(padR, 0.15, 24, 96, padArc), mats.cushion);
+            bandPad.rotation.z = Math.PI / 2 - padArc / 2;
+            bandPad.scale.z = 1.5;
+            bandPad.position.y = BAND_CY;
+            bandGroup.add(bandPad);
+
+            [Math.PI / 2 - padArc / 2, Math.PI / 2 + padArc / 2].forEach(a => {   // rounded padding ends
+                const cap = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 16), mats.cushion);
+                cap.scale.z = 1.5;
+                cap.position.set(padR * Math.cos(a), BAND_CY + padR * Math.sin(a), 0);
+                bandGroup.add(cap);
+            });
+
+            group.add(bandGroup);
+
+            const left = createEarcup(true, mats);
+            const right = createEarcup(false, mats);
+            group.add(left);
+            group.add(right);
+
+            return { group, headbandGroup: bandGroup, leftEarcup: left, rightEarcup: right };
+        }
+
+        // `stage` carries the mouse tilt + idle float, so it never fights the scroll animation
+        // that drives `headphoneGroup`.
+        const stage = new THREE.Group();
+        scene.add(stage);
+
+        const mainModel = buildHeadphoneModel(mainMats);
+        const headphoneGroup = mainModel.group;
+        const headbandGroup = mainModel.headbandGroup;
+        const leftEarcup = mainModel.leftEarcup;
+        const rightEarcup = mainModel.rightEarcup;
+
+        // Center Headphone Group Offset
+        headphoneGroup.position.set(0, 0.3, 0);
+        stage.add(headphoneGroup);
+
+
+        // 5. FLOATING PARTICLES BACKGROUND
+        const particleCount = 70;
+        const particleGeo = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            particlePositions[i] = (Math.random() - 0.5) * 20;
+            particlePositions[i + 1] = (Math.random() - 0.5) * 20;
+            particlePositions[i + 2] = (Math.random() - 0.5) * 20;
+        }
+
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        const particleMat = new THREE.PointsMaterial({
+            color: 0xd4af37,
+            size: 0.06,
+            transparent: true,
+            opacity: 0.4
+        });
+
+        const particleSystem = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleSystem);
+
+
+        // 6. COLOR SWITCHER FUNCTION (Exposed globally for UI buttons)
+        window.changeHeadphoneColor = function(primaryHex, cushionHex) {
+            const primary = hexToLinear(primaryHex);
+            const cushion = hexToLinear(cushionHex);
+
+            gsap.to(bodyMaterial.color, {
+                r: primary.r,
+                g: primary.g,
+                b: primary.b,
+                duration: 0.8,
+                ease: 'power2.out',
+                overwrite: true
+            });
+
+            gsap.to(cushionMaterial.color, {
+                r: cushion.r,
+                g: cushion.g,
+                b: cushion.b,
+                duration: 0.8,
+                ease: 'power2.out',
+                overwrite: true
+            });
+
+            // Quick pop animation on color change
+            gsap.killTweensOf(headphoneGroup.scale);
+            headphoneGroup.scale.set(1, 1, 1);
+            gsap.to(headphoneGroup.scale, {
+                x: 1.08, y: 1.08, z: 1.08,
+                duration: 0.22,
+                ease: 'power2.out',
+                yoyo: true,
+                repeat: 1
+            });
+        };
+
+
+        // 7. MOUSE PARALLAX TILT EFFECT
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetX = 0;
+        let targetY = 0;
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth - 0.5) * 0.5;
+            mouseY = (e.clientY / window.innerHeight - 0.5) * 0.5;
+        });
+
+
+        // 8. SMOOTH SCROLLING (Lenis) wired into GSAP ScrollTrigger
+        gsap.registerPlugin(ScrollTrigger);
+
+        let lenis = null;
+        if (window.Lenis && !prefersReducedMotion) {
+            lenis = new Lenis({
+                duration: 1.15,
+                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+                smoothWheel: true
+            });
+            lenis.on('scroll', ScrollTrigger.update);
+            gsap.ticker.add((time) => lenis.raf(time * 1000));
+            gsap.ticker.lagSmoothing(0);
+
+            // Smooth anchor navigation
+            document.querySelectorAll('a[href^="#"]').forEach((link) => {
+                link.addEventListener('click', (e) => {
+                    const id = link.getAttribute('href');
+                    if (id === '#') {
+                        e.preventDefault();
+                        lenis.scrollTo(0);
+                        return;
+                    }
+                    const target = document.querySelector(id);
+                    if (!target) return;
+                    e.preventDefault();
+                    lenis.scrollTo(target);
+                });
+            });
+        }
+
+        // Header gets a soft glass background once the page is scrolled
+        const mainHeader = document.getElementById('main-header');
+        function updateHeaderState() {
+            mainHeader.classList.toggle('header-scrolled', window.scrollY > 40);
+        }
+        window.addEventListener('scroll', updateHeaderState, { passive: true });
+        updateHeaderState();
+
+
+        // 9. GSAP SCROLLTRIGGER 3D ANIMATION TIMELINE
+        // Initial Hero Pose Setup
+        headphoneGroup.rotation.x = 0.2;
+        headphoneGroup.rotation.y = -0.4;
+
+        const isNarrow = window.innerWidth < 768;
+
+        const mainTimeline = gsap.timeline({
+            scrollTrigger: {
+                trigger: "body",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: lenis ? 0.5 : 1.2
+            }
+        });
+
+        // Sequence 1: Hero -> Recommended Products (Rotate to side showcase pose)
+        mainTimeline.to(headphoneGroup.rotation, {
+            x: 0.5,
+            y: Math.PI * 2 + 0.5,
+            z: 0.2,
+            duration: 2,
+            ease: 'none'
+        }, 0)
+        .to(headphoneGroup.position, {
+            x: 0,
+            y: 0.1,
+            z: -3,      // sits further back so it never crowds the product cards
+            duration: 2,
+            ease: 'none'
+        }, 0)
+
+        // Sequence 2: Recommended Products -> Features (Overhead Top-Down Spec View)
+        .to(headphoneGroup.rotation, {
+            x: 1.2,
+            y: Math.PI * 3.5,
+            z: -0.5,
+            duration: 2.5,
+            ease: 'none'
+        }, 2)
+        .to(headphoneGroup.position, {
+            x: 0,
+            y: 0.4,
+            z: -0.5,
+            duration: 2.5,
+            ease: 'none'
+        }, 2)
+
+        // Sequence 3: Features -> Portable Spotlight (Zoom In Detailed Ear-Cup Closeup)
+        .to(headphoneGroup.rotation, {
+            x: 0.1,
+            y: Math.PI * 4.2,
+            z: 0,
+            duration: 2.5,
+            ease: 'none'
+        }, 4.5)
+        .to(headphoneGroup.position, {
+            x: isNarrow ? 0 : 1.5,
+            y: -0.1,
+            z: isNarrow ? 1.5 : 2.5, // Zoom close up
+            duration: 2.5,
+            ease: 'none'
+        }, 4.5)
+
+        // Sequence 4: Reviews -> Footer Return to Elegant Resting Pose
+        .to(headphoneGroup.rotation, {
+            x: 0.3,
+            y: Math.PI * 6,
+            z: 0,
+            duration: 2,
+            ease: 'none'
+        }, 7)
+        .to(headphoneGroup.position, {
+            x: 0,
+            y: 0,
+            z: 0,
+            duration: 2,
+            ease: 'none'
+        }, 7);
+
+        // Soft reveal of cards while scrolling (inline styles are cleared afterwards,
+        // so the existing hover effects keep working)
+        if (!prefersReducedMotion) {
+            gsap.utils.toArray('#recommended .glass-card-hover, #features .glass-card, #reviews .glass-card').forEach((el) => {
+                gsap.from(el, {
+                    opacity: 0,
+                    y: 48,
+                    duration: 0.9,
+                    ease: 'power3.out',
+                    clearProps: 'transform,opacity,transition',
+                    onStart: () => { el.style.transition = 'none'; },
+                    scrollTrigger: { trigger: el, start: 'top 90%', once: true }
+                });
+            });
+        }
+
+
+        // 10. PRODUCT IMAGES - real 3D renders of the headphone for every product card
+        function initProductThumbnails() {
+            const cards = document.querySelectorAll('#recommended .glass-card-hover');
+            if (!cards.length) return;
+
+            const W = 720, H = 560;
+            const tr = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            tr.setPixelRatio(1);
+            tr.setSize(W, H, false);
+            tr.outputEncoding = THREE.sRGBEncoding;
+            tr.toneMapping = THREE.ACESFilmicToneMapping;
+            tr.toneMappingExposure = 1.05;
+            tr.setClearColor(0x000000, 0);
+
+            const tScene = new THREE.Scene();
+            tScene.environment = createStudioEnvironment(tr);
+
+            const tCam = new THREE.PerspectiveCamera(28, W / H, 0.1, 100);
+            tCam.position.set(0, 0.1, 11.5);
+            tCam.lookAt(0, 0, 0);
+
+            tScene.add(new THREE.AmbientLight(0xffffff, 0.35));
+            const tKey = new THREE.DirectionalLight(0xffffff, 2.0);
+            tKey.position.set(5, 8, 5);
+            tScene.add(tKey);
+            const tRim = new THREE.PointLight(0xd4af37, 4, 15);
+            tRim.position.set(-5, -2, -3);
+            tScene.add(tRim);
+            const tFill = new THREE.DirectionalLight(0x8ab4f8, 0.8);
+            tFill.position.set(-5, 3, 2);
+            tScene.add(tFill);
+
+            const tMats = {
+                body: new THREE.MeshStandardMaterial({ color: hexToLinear(0x1a1a1a), metalness: 0.8, roughness: 0.25 }),
+                cushion: new THREE.MeshStandardMaterial({ color: hexToLinear(0x111111), metalness: 0.05, roughness: 0.75 }),
+                gold: accentGoldMaterial.clone(),
+                metal: metallicRingMaterial.clone(),
+                fabric: fabricMaterial.clone()
+            };
+
+            const tPivot = new THREE.Group();
+            tPivot.add(buildHeadphoneModel(tMats).group);
+            tPivot.rotation.set(0.1, -0.6, 0);
+            tScene.add(tPivot);
+
+            function renderThumb(state) {
+                tMats.body.color.copy(hexToLinear(state.primary));
+                tMats.cushion.color.copy(hexToLinear(state.cushion));
+                tMats.body.roughness = state.rough;
+                tr.render(tScene, tCam);
+                return tr.domElement.toDataURL('image/png');
+            }
+
+            cards.forEach((card) => {
+                const slot = card.querySelector('.h-48');
+                const swatches = card.querySelectorAll('button[onclick*="changeHeadphoneColor"]');
+                if (!slot || !swatches.length) return;
+
+                const parse = (btn) => {
+                    const m = (btn.getAttribute('onclick') || '').match(/changeHeadphoneColor\(\s*(0x[0-9a-fA-F]+)\s*,\s*(0x[0-9a-fA-F]+)\s*\)/);
+                    return m ? { primary: parseInt(m[1], 16), cushion: parseInt(m[2], 16) } : null;
+                };
+
+                const first = parse(swatches[0]);
+                if (!first) return;
+
+                const subtitle = (card.querySelector('p') || {}).textContent || '';
+                const title = (card.querySelector('h3') || {}).textContent || 'Headphone';
+                const state = { primary: first.primary, cushion: first.cushion, rough: /matte/i.test(subtitle) ? 0.5 : 0.24 };
+
+                const img = document.createElement('img');
+                img.className = 'product-thumb';
+                img.alt = title.trim() + ' headphone';
+                img.decoding = 'async';
+                img.src = renderThumb(state);
+
+                // keep the original placeholder icon in the DOM, but show the product image instead
+                Array.from(slot.children).forEach((child) => { child.style.display = 'none'; });
+                slot.appendChild(img);
+
+                swatches.forEach((btn) => {
+                    const colors = parse(btn);
+                    if (!colors) return;
+                    btn.addEventListener('click', () => {
+                        state.primary = colors.primary;
+                        state.cushion = colors.cushion;
+                        img.src = renderThumb(state);
+                        if (img.animate) {
+                            img.animate(
+                                [{ opacity: 0.4, transform: 'scale(0.94)' }, { opacity: 1, transform: 'scale(1)' }],
+                                { duration: 380, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+                            );
+                        }
+                    });
+                });
+            });
+        }
+
+
+        // 11. RENDER LOOP
+        const clock = new THREE.Clock();
+        let firstFrame = true;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = Math.min(clock.getDelta(), 0.05);
+            const elapsedTime = clock.elapsedTime;
+
+            // Smooth Mouse Interpolation (frame-rate independent)
+            const ease = 1 - Math.exp(-delta * 5);
+            targetX += (mouseX - targetX) * ease;
+            targetY += (mouseY - targetY) * ease;
+
+            // Mouse parallax + idle floating live on `stage` (non-accumulating)
+            stage.rotation.y = targetX * 1.2;
+            stage.rotation.x = targetY * 0.8;
+            stage.position.y = Math.sin(elapsedTime * 1.3) * 0.07;
+
+            // Slowly rotate background particle field
+            particleSystem.rotation.y = elapsedTime * 0.03;
+
+            renderer.render(scene, camera);
+
+            if (firstFrame) {
+                firstFrame = false;
+                canvas.style.opacity = '1';
+            }
+        }
+
+        // Window Resize Listener
+        window.addEventListener('resize', () => {
+            fitCameraToViewport();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start render loop on load
+        window.onload = function() {
+            try {
+                initProductThumbnails();
+            } catch (err) {
+                console.warn('Product thumbnails unavailable, keeping icon placeholders.', err);
+            }
+            animate();
+            ScrollTrigger.refresh();
+        };
+    </script>
+</body>
+</html>
